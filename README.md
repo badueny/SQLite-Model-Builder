@@ -111,7 +111,8 @@ async function getDB() {
 
   // 🧩 Filter + Like
   const active = await Model('users')
-    .where('status','active')
+    .where('position','cs') //singe condition
+    .where({status: 'active', role: 'admin' })   // multiple condition otomatis
     .whereOp('old','<', 20)
     .whereLike('name', 'andi')
     .get();
