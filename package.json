@@ -1,17 +1,32 @@
 {
   "name": "@awenk/sqlite-model-builder",
   "version": "1.5.0",
-  "description": "Dynamic query builder & mini ORM for Node + SQLite",
+  "description": "Dynamic Query Builder & Mini ORM for Node.js + SQLite",
   "main": "index.js",
   "type": "commonjs",
-  "keywords": ["sql", "query-builder", "sqlite", "nodejs"],
+  "author": "bitdev.id <team@bitdev.id>",
+  "license": "MIT",
+  "keywords": [
+    "orm",
+    "query-builder",
+    "sqlite",
+    "sqlite3",
+    "nodejs",
+    "database",
+    "model"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/badueny/sqlite-model-builder.git"
   },
-  "author": "Awenk",
-  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/badueny/sqlite-model-builder/issues"
+  },
+  "homepage": "https://github.com/badueny/sqlite-model-builder#readme",
   "peerDependencies": {
-    "sqlite3": ">=3"
+    "sqlite3": "^5.1.7"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
