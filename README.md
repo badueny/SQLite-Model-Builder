@@ -62,43 +62,37 @@ try {
 
 ### 📘 Contoh Penggunaan
 ```js
-const { Model } = require('@awenk/sqlite-model-builder');
-
-// Inisialisasi koneksi database
-const User = new Model('users', { file: './data/app.db' });
+// test.js
+const { initDB, Model } = require('@awenk/sqlite-model-builder');
 
 (async () => {
-  // Auto-create tabel (opsional)
-  await User.createTableIfNotExists({
-    id: 'INTEGER PRIMARY KEY AUTOINCREMENT',
-    name: 'TEXT',
-    email: 'TEXT UNIQUE',
-    age: 'INTEGER',
-    created_at: 'TEXT'
-  });
+  const db = await initDB({ filename: './data/myapp.sqlite' });
 
-  // Insert data
-  await User.insert({
-    name: 'Alice',
-    email: 'alice@example.com',
-    age: 25,
-    created_at: new Date().toISOString()
-  });
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      email TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 
-  // Ambil semua data
-  const allUsers = await User.select('*').get();
+  const User = Model.for(db, 'users');
+
+  // Insert
+  await User.insert({ name: 'MyNAME', email: 'mail@mail.test' });
+
+  // Select
+  const allUsers = await User.select(['id', 'name']).get();
   console.log(allUsers);
 
-  // Ambil satu user
-  const user = await User.where('email', 'alice@example.com').first();
-  console.log(user);
+  // Update
+  await User.where('id', 1).update({ name: 'MyNAME Updated' });
 
-  // Update user
-  await User.where('id', user.id).update({ age: 26 });
-
-  // Hapus user
-  await User.where('id', user.id).delete();
+  // Delete
+  await User.where('id', 2).delete();
 })();
+
 ```
 
 ### 📦 Instalasi
