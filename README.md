@@ -67,7 +67,14 @@ const { initDB, Model } = require('@awenk/sqlite-model-builder');
 
 (async () => {
   //Create New Or read if present db
-  const db = await initDB({ filename: './data/myapp.sqlite' });
+  //1️⃣ Mode default (baca/tulis file, auto create)
+  const db = await initDB({ filename: './data/myapp.sqlite', verbose: true });
+
+  //2️⃣ Mode readonly
+  const db = await initDB({ filename: './data/myapp.sqlite', readonly: true });
+
+  //3️⃣ Mode in-memory
+  const db = await initDB({ memory: true, verbose: true });
 
   // Auto-create __migrations table
   await db.exec(`
