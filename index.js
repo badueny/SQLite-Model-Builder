@@ -106,7 +106,21 @@ class Model {
     return this;
   }
 
-  where(column, operator, value) {
+  where(column, value) {
+    if (typeof column === 'object' && !Array.isArray(column)) {
+      // Jika object => multiple where otomatis
+      for (const [col, val] of Object.entries(column)) {
+        this._where.push(`${col} = ?`);
+        this._params.push(val);
+      }
+    } else {
+      this._where.push(`${column} = ?`);
+      this._params.push(value);
+    }
+    return this;
+  }
+  
+  whereOp(column, operator, value) {
     if (value === undefined) {
       value = operator;
       operator = '=';
