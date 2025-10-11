@@ -68,6 +68,7 @@ const { initDB, Model } = require('@awenk/sqlite-model-builder');
 (async () => {
   const db = await initDB({ filename: './data/myapp.sqlite' });
 
+  // Auto-create __migrations table
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,6 +78,7 @@ const { initDB, Model } = require('@awenk/sqlite-model-builder');
     );
   `);
 
+  //get Table
   const User = Model.for(db, 'users');
 
   // Insert
