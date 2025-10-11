@@ -1,10 +1,10 @@
-# SQLite-Model-Builder
+# SQLite Model Builder
 > Dynamic Query Builder & Mini ORM for Node.js + SQLite  
 
 ---
 
 ### 🚀 Overview
-`SQLite-Model-Builder` adalah query builder ringan dan fleksibel untuk **SQLite** di Node.js.  
+`SQLite Model Builder` adalah query builder ringan dan fleksibel untuk **SQLite** di Node.js.  
 Terinspirasi dari Eloquent (Laravel) dan Knex, tapi lebih sederhana — cukup satu file, tanpa ORM berat.  
 Mendukung query dinamis, chaining, filter, agregasi, dan auto-create database jika belum ada.
 
