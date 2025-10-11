@@ -75,9 +75,16 @@ async function initDB(options = {}) {
 }
 
 class Model {
-  constructor(db, table) {
-    this.db = db;
-    this.table = table;
+  constructor(dbOrTable, tableMaybe) {
+    // allow flexible usage:
+    // new Model(db, 'users') OR new Model('users') -> uses global DB
+    if (typeof dbOrTable === 'string') {
+      this.db = getConnection();
+      this.table = dbOrTable;
+    } else {
+      this.db = dbOrTable || getConnection();
+      this.table = tableMaybe;
+    }
     this.reset();
   }
 
@@ -298,4 +305,15 @@ class Model {
   }
 }
 
-module.exports = { initDB, Model };
+/** Factory export */
+function ModelFactory(table) {
+  return new Model(table);
+}
+
+module.exports = {
+  initDB,
+  getConnection,
+  setConnection,
+  Model: ModelFactory,
+  ModelClass: Model,
+};
