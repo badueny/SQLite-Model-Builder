@@ -28,5 +28,10 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "exports": {
+    ".": {
+      "require": "./index.js"
+    }
   }
 }
