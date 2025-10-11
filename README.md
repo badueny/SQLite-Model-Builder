@@ -128,6 +128,19 @@ async function getDB() {
   // 🧩 Pagination
   const paged = await Model('users').paginate(2, 10);
   console.log('Paged:', paged);
+
+  // 🧩 Exist
+  const usersExist = await Model('users').where('status', 'active').exists();
+  console.log('Ada user aktif?', usersExist); // true/false
+
+  // 🧩 Select Satu Kolom
+  const emails = await Model('users').where('status', 'active').pluck('email');
+  console.log(emails); // ['a@a.com', 'b@b.com', ...]
+
+  // 🧩 Min Max
+  const minAge = await Model('users').where('status', 'active').min('age');
+  const maxAge = await Model('users').where('status', 'active').max('age');
+  console.log({ minAge, maxAge });
 })();
 ````
 ```js
