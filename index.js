@@ -1,4 +1,3 @@
-// index.js
 const fs = require('fs');
 const path = require('path');
 const sqlite3 = require('sqlite3');
@@ -15,15 +14,12 @@ const projectRoot = process.cwd();
  * @param {boolean} [options.readonly=false] - Open DB in readonly mode
  * @param {boolean} [options.verbose=false] - Enable verbose logging
  */
-
 async function initDB(options = {}) {
-  
-  //default create db if initDB() without options;
   const {
     filename = path.join(projectRoot, 'data', 'app.sqlite'),
     memory = false,
     readonly = false,
-    verbose = false
+    verbose = false,
   } = options;
 
   if (!memory) {
@@ -44,12 +40,24 @@ async function initDB(options = {}) {
   const db = await open({
     filename: memory ? ':memory:' : filename,
     driver: sqlite3.Database,
-    mode
+    mode,
   });
 
   if (verbose) {
-    db.on('trace', (sql) => console.log('SQL TRACE:', sql));
+    db.on('trace', (sql) => console.log('[TRACE]', sql));
   }
+
+  // Simple transaction helper
+  db.transaction = async (callback) => {
+    try {
+      await db.exec('BEGIN');
+      await callback(db);
+      await db.exec('COMMIT');
+    } catch (err) {
+      await db.exec('ROLLBACK');
+      throw err;
+    }
+  };
 
   return db;
 }
@@ -58,11 +66,20 @@ class Model {
   constructor(db, table) {
     this.db = db;
     this.table = table;
+    this.reset();
+  }
+
+  reset() {
     this._select = '*';
-    this._where = '';
+    this._where = [];
+    this._joins = [];
     this._order = '';
+    this._group = '';
+    this._having = '';
     this._limit = '';
+    this._offset = '';
     this._params = [];
+    return this;
   }
 
   select(columns = '*') {
@@ -75,7 +92,61 @@ class Model {
       value = operator;
       operator = '=';
     }
-    this._where = `WHERE ${column} ${operator} ?`;
+    this._where.push(`${column} ${operator} ?`);
+    this._params.push(value);
+    return this;
+  }
+
+  orWhere(column, operator, value) {
+    if (value === undefined) {
+      value = operator;
+      operator = '=';
+    }
+    if (this._where.length === 0) {
+      this._where.push(`${column} ${operator} ?`);
+    } else {
+      this._where.push(`OR ${column} ${operator} ?`);
+    }
+    this._params.push(value);
+    return this;
+  }
+
+  whereIn(column, values = []) {
+    const placeholders = values.map(() => '?').join(', ');
+    this._where.push(`${column} IN (${placeholders})`);
+    this._params.push(...values);
+    return this;
+  }
+
+  whereLike(column, pattern) {
+    this._where.push(`${column} LIKE ?`);
+    this._params.push(`%${pattern}%`);
+    return this;
+  }
+
+  whereBetween(column, min, max) {
+    this._where.push(`${column} BETWEEN ? AND ?`);
+    this._params.push(min, max);
+    return this;
+  }
+
+  join(table, left, operator, right) {
+    this._joins.push(`JOIN ${table} ON ${left} ${operator} ${right}`);
+    return this;
+  }
+
+  leftJoin(table, left, operator, right) {
+    this._joins.push(`LEFT JOIN ${table} ON ${left} ${operator} ${right}`);
+    return this;
+  }
+
+  groupBy(columns) {
+    this._group = `GROUP BY ${Array.isArray(columns) ? columns.join(', ') : columns}`;
+    return this;
+  }
+
+  having(column, operator, value) {
+    this._having = `HAVING ${column} ${operator} ?`;
     this._params.push(value);
     return this;
   }
@@ -90,36 +161,124 @@ class Model {
     return this;
   }
 
+  offset(count) {
+    this._offset = `OFFSET ${count}`;
+    return this;
+  }
+
   async get() {
-    const sql = `SELECT ${this._select} FROM ${this.table} ${this._where} ${this._order} ${this._limit}`;
-    return this.db.all(sql, this._params);
+    try {
+      const sql = this._buildSelect();
+      const rows = await this.db.all(sql, this._params);
+      return rows;
+    } finally {
+      this.reset();
+    }
   }
 
   async first() {
-    const sql = `SELECT ${this._select} FROM ${this.table} ${this._where} ${this._order} LIMIT 1`;
-    return this.db.get(sql, this._params);
+    try {
+      const sql = this._buildSelect(true);
+      return await this.db.get(sql, this._params);
+    } finally {
+      this.reset();
+    }
+  }
+
+  async count(column = '*') {
+    const sql = `SELECT COUNT(${column}) AS total FROM ${this.table} ${this._buildWhere()}`;
+    const row = await this.db.get(sql, this._params);
+    this.reset();
+    return row?.total || 0;
+  }
+
+  async sum(column) {
+    const sql = `SELECT SUM(${column}) AS total FROM ${this.table} ${this._buildWhere()}`;
+    const row = await this.db.get(sql, this._params);
+    this.reset();
+    return row?.total || 0;
+  }
+
+  async avg(column) {
+    const sql = `SELECT AVG(${column}) AS avg FROM ${this.table} ${this._buildWhere()}`;
+    const row = await this.db.get(sql, this._params);
+    this.reset();
+    return row?.avg || 0;
   }
 
   async insert(data) {
     const keys = Object.keys(data);
-    const placeholders = keys.map(() => '?').join(',');
-    const sql = `INSERT INTO ${this.table} (${keys.join(',')}) VALUES (${placeholders})`;
-    await this.db.run(sql, Object.values(data));
-    return { success: true };
+    const placeholders = keys.map(() => '?').join(', ');
+    const sql = `INSERT INTO ${this.table} (${keys.join(', ')}) VALUES (${placeholders})`;
+    const result = await this.db.run(sql, Object.values(data));
+    this.reset();
+    return { id: result.lastID, changes: result.changes };
+  }
+
+  async insertMany(rows = []) {
+    if (!Array.isArray(rows) || !rows.length) return { changes: 0 };
+    const keys = Object.keys(rows[0]);
+    const placeholders = `(${keys.map(() => '?').join(', ')})`;
+    const sql = `INSERT INTO ${this.table} (${keys.join(', ')}) VALUES ${rows.map(() => placeholders).join(', ')}`;
+    const params = rows.flatMap((r) => Object.values(r));
+    const result = await this.db.run(sql, params);
+    this.reset();
+    return { changes: result.changes };
   }
 
   async update(data) {
-    const sets = Object.keys(data).map(k => `${k} = ?`).join(', ');
-    const sql = `UPDATE ${this.table} SET ${sets} ${this._where}`;
+    const sets = Object.keys(data).map((k) => `${k} = ?`).join(', ');
+    const sql = `UPDATE ${this.table} SET ${sets} ${this._buildWhere()}`;
     const params = [...Object.values(data), ...this._params];
-    await this.db.run(sql, params);
-    return { success: true };
+    const result = await this.db.run(sql, params);
+    this.reset();
+    return { changes: result.changes };
   }
 
   async delete() {
-    const sql = `DELETE FROM ${this.table} ${this._where}`;
-    await this.db.run(sql, this._params);
-    return { success: true };
+    const sql = `DELETE FROM ${this.table} ${this._buildWhere()}`;
+    const result = await this.db.run(sql, this._params);
+    this.reset();
+    return { changes: result.changes };
+  }
+
+  async paginate(page = 1, perPage = 10) {
+    const offset = (page - 1) * perPage;
+    this.limit(perPage).offset(offset);
+    const data = await this.get();
+    const total = await this.count();
+    const lastPage = Math.ceil(total / perPage);
+    return {
+      data,
+      total,
+      current_page: page,
+      per_page: perPage,
+      last_page: lastPage,
+    };
+  }
+
+  async raw(sql, params = []) {
+    return this.db.all(sql, params);
+  }
+
+  _buildSelect(limitOne = false) {
+    let sql = `SELECT ${this._select} FROM ${this.table}`;
+    if (this._joins.length) sql += ' ' + this._joins.join(' ');
+    if (this._where.length) sql += ' ' + this._buildWhere();
+    if (this._group) sql += ' ' + this._group;
+    if (this._having) sql += ' ' + this._having;
+    if (this._order) sql += ' ' + this._order;
+    if (limitOne) sql += ' LIMIT 1';
+    else {
+      if (this._limit) sql += ' ' + this._limit;
+      if (this._offset) sql += ' ' + this._offset;
+    }
+    return sql.trim();
+  }
+
+  _buildWhere() {
+    if (!this._where.length) return '';
+    return 'WHERE ' + this._where.join(' ');
   }
 
   static for(db, table) {
@@ -127,7 +286,4 @@ class Model {
   }
 }
 
-module.exports = {
-  initDB,
-  Model
-};
+module.exports = { initDB, Model };
