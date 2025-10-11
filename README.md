@@ -108,7 +108,7 @@ const { initDB, Model } = require('@awenk/sqlite-model-builder');
 ### 📦 Instalasi
 
 ```bash
-npm install @awenk/sqlite-model-builder sqlite sqlite3
+npm install github:badueny/sqlite-model-builder sqlite sqlite3
 ```
 
 ---
