@@ -14,6 +14,18 @@ const projectRoot = process.cwd();
  * @param {boolean} [options.readonly=false] - Open DB in readonly mode
  * @param {boolean} [options.verbose=false] - Enable verbose logging
  */
+
+let globalDB = null;
+
+function setConnection(db) {
+  globalDB = db;
+}
+
+function getConnection() {
+  if (!globalDB) throw new Error('Database connection not set. Call setConnection() first.');
+  return globalDB;
+}
+
 async function initDB(options = {}) {
   const {
     filename = path.join(projectRoot, 'data', 'app.sqlite'),
@@ -58,7 +70,7 @@ async function initDB(options = {}) {
       throw err;
     }
   };
-
+  setConnection(db);
   return db;
 }
 
