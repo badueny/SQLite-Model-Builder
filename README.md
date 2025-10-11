@@ -64,9 +64,11 @@ try {
 ```js
 // test.js
 const { initDB, Model } = require('@awenk/sqlite-model-builder');
+let db = null;
 
-(async () => {
+async function getDB() {
   //Create New Or read if present db
+  /*
   //1️⃣ Mode default (baca/tulis file, auto create)
   const db = await initDB({ filename: './data/myapp.sqlite', verbose: true });
 
@@ -75,7 +77,14 @@ const { initDB, Model } = require('@awenk/sqlite-model-builder');
 
   //3️⃣ Mode in-memory
   const db = await initDB({ memory: true, verbose: true });
+  */
+  
+  if (!db) db = await initDB({ filename: './data/app.sqlite' });
+  return db;
+}
 
+(async () => {
+   await getDB(); //init connection
   // Auto-create __migrations table
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -87,29 +96,46 @@ const { initDB, Model } = require('@awenk/sqlite-model-builder');
   `);
 
   // ambil semua user
-  const users = await Model.for(db, 'users').orderBy('id', 'DESC').get();
+  const users = await Model('users').orderBy('id', 'DESC').get();
   
   // filter
-  const active = await Model.for(db, 'users')
+  const active = await Model('users')
     .where('status', 'active')
     .whereLike('name', 'andi')
     .get();
   
   // insert
-  await Model.for(db, 'users').insert({ name: 'Andi', email: 'a@a.com' });
+  await Model('users').insert({ name: 'Andi', email: 'a@a.com' });
   
   // update
-  await Model.for(db, 'users').where('id', 1).update({ name: 'Update Name' });
+  await Model('users').where('id', 1).update({ name: 'Update Name' });
   
   // delete
-  await Model.for(db, 'users').where('id', 2).delete();
+  await Model('users').where('id', 2).delete();
   
   // aggregate
-  const total = await Model.for(db, 'orders').count();
-  const sum = await Model.for(db, 'orders').sum('amount');
+  const total = await Model('orders').count();
+  const sum = await Model('orders').sum('amount');
   
   // pagination
-  const paged = await Model.for(db, 'users').paginate(2, 10);
+  const paged = await Model('users').paginate(2, 10);
+})();
+````
+```js
+/*multiple Database*/
+const { initDB, ModelClass } = require('@awenk/sqlite-model-builder');
+
+(async () => {
+  const dbA = await initDB({ filename: './data/a.sqlite' });
+  const dbB = await initDB({ filename: './data/b.sqlite' });
+
+  // Pakai koneksi A
+  const modelA = new ModelClass(dbA, 'users');
+  const usersA = await modelA.select('*').get();
+
+  // Pakai koneksi B
+  const modelB = new ModelClass(dbB, 'users');
+  const usersB = await modelB.select('*').get();
 })();
 
 ```
