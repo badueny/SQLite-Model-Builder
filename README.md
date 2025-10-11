@@ -162,17 +162,22 @@ const { initDB, ModelClass } = require('@awenk/sqlite-model-builder');
 
 ```
 
+---
+
 ### 📦 Instalasi
 
 ```bash
 npm install github:badueny/sqlite-model-builder sqlite sqlite3
 ```
+OR
+```bash
+npm install @awenk/sqlite-model-builder
+```
 
 ---
 
 ### 🧠 Lisensi
-[MIT](https://github.com/badueny/SQLite-Model-Builder?tab=MIT-1-ov-file) © 2025 bitdev.id
-Author: Awenk
+[MIT](https://github.com/badueny/SQLite-Model-Builder?tab=MIT-1-ov-file) © 2025 bitdev.id(https://bitdev.id) Author: Awenk
 
 [![npm version](https://img.shields.io/npm/v/@awenk/sqlite-model-builder.svg)](https://www.npmjs.com/package/@awenk/sqlite-model-builder)
 [![npm downloads](https://img.shields.io/npm/dm/@awenk/sqlite-model-builder.svg)](https://www.npmjs.com/package/@awenk/sqlite-model-builder)
