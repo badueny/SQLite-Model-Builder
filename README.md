@@ -171,7 +171,7 @@ npm install github:badueny/sqlite-model-builder sqlite sqlite3
 ---
 
 ### 🧠 Lisensi
-MIT © 2025 bitdev.id
+[MIT](https://img.shields.io/github/license/badueny/sqlite-model-builder.svg?style=flat-square) © 2025 bitdev.id
 Author: Awenk
 
 [![npm version](https://img.shields.io/npm/v/@awenk/sqlite-model-builder.svg)](https://www.npmjs.com/package/@awenk/sqlite-model-builder)
