@@ -1,188 +1,106 @@
-// helpers/ModelSQLite.js
-const db = require('../../db');
+// index.js
+const fs = require('fs');
+const path = require('path');
+const sqlite3 = require('sqlite3');
+const { open } = require('sqlite');
 
-class ModelSQLite {
-  constructor(table) {
+class Model {
+  constructor(db, table) {
+    this.db = db;
     this.table = table;
     this._select = '*';
-    this._where = [];
+    this._where = '';
     this._order = '';
     this._limit = '';
-    this._group = '';
-    this._having = '';
-    this._joins = [];
-    this._auditTable = 'audit_log';
+    this._params = [];
   }
 
-  // ========== QUERY BUILDER ==========
-  select(cols) {
-    if (Array.isArray(cols)) this._select = cols.join(', ');
-    else this._select = cols;
+  select(columns = '*') {
+    this._select = Array.isArray(columns) ? columns.join(', ') : columns;
     return this;
   }
 
-  where(col, op, val) {
-    if (val === undefined) { val = op; op = '='; }
-    this._where.push({ col, op, val });
+  where(column, operator, value) {
+    if (value === undefined) {
+      value = operator;
+      operator = '=';
+    }
+    this._where = `WHERE ${column} ${operator} ?`;
+    this._params.push(value);
     return this;
   }
 
-  whereIn(col, arr) {
-    const placeholders = arr.map(() => '?').join(', ');
-    this._where.push({ raw: `${col} IN (${placeholders})`, vals: arr });
+  orderBy(column, direction = 'ASC') {
+    this._order = `ORDER BY ${column} ${direction}`;
     return this;
   }
 
-  orderBy(col, dir = 'ASC') {
-    this._order = `ORDER BY ${col} ${dir}`;
+  limit(count) {
+    this._limit = `LIMIT ${count}`;
     return this;
   }
 
-  limit(limit, offset = 0) {
-    this._limit = `LIMIT ${limit} OFFSET ${offset}`;
-    return this;
-  }
-
-  groupBy(col) {
-    this._group = `GROUP BY ${col}`;
-    return this;
-  }
-
-  having(cond) {
-    this._having = `HAVING ${cond}`;
-    return this;
-  }
-
-  leftJoin(table, localKey, foreignKey) {
-    this._joins.push(`LEFT JOIN ${table} ON ${localKey} = ${foreignKey}`);
-    return this;
-  }
-
-  // ========== EXECUTE ==========
   async get() {
-    let sql = `SELECT ${this._select} FROM ${this.table}`;
-    if (this._joins.length) sql += ' ' + this._joins.join(' ');
-    if (this._where.length) sql += ' WHERE ' + this._buildWhere();
-    if (this._group) sql += ' ' + this._group;
-    if (this._having) sql += ' ' + this._having;
-    if (this._order) sql += ' ' + this._order;
-    if (this._limit) sql += ' ' + this._limit;
-    const [rows] = await db.query(sql, this._collectParams());
-    return rows;
+    const sql = `SELECT ${this._select} FROM ${this.table} ${this._where} ${this._order} ${this._limit}`;
+    return this.db.all(sql, this._params);
   }
 
   async first() {
-    this.limit(1);
-    const res = await this.get();
-    return res[0] || null;
+    const sql = `SELECT ${this._select} FROM ${this.table} ${this._where} ${this._order} LIMIT 1`;
+    return this.db.get(sql, this._params);
   }
 
-  async count() {
-    const sql = `SELECT COUNT(*) as total FROM ${this.table}` + (this._where.length ? ` WHERE ${this._buildWhere()}` : '');
-    const [rows] = await db.query(sql, this._collectParams());
-    return rows[0]?.total || 0;
-  }
-
-  async sum(col) {
-    const sql = `SELECT SUM(${col}) as total FROM ${this.table}` + (this._where.length ? ` WHERE ${this._buildWhere()}` : '');
-    const [rows] = await db.query(sql, this._collectParams());
-    return rows[0]?.total || 0;
-  }
-
-  // ========== CRUD ==========
   async insert(data) {
-    const cols = Object.keys(data);
-    const vals = Object.values(data);
-    const placeholders = cols.map(() => '?').join(', ');
-    const sql = `INSERT INTO ${this.table} (${cols.join(', ')}) VALUES (${placeholders})`;
-    const [res] = await db.query(sql, vals);
-    await this._logAudit('insert', null, data);
-    return res.insertId;
-  }
-
-  async insertUpdate(data, conflictCols = ['id']) {
-    const cols = Object.keys(data);
-    const vals = Object.values(data);
-    const placeholders = cols.map(() => '?').join(', ');
-    const updates = cols.map(c => `${c}=excluded.${c}`).join(', ');
-    const conflict = `(${conflictCols.join(',')})`;
-    const sql = `
-      INSERT INTO ${this.table} (${cols.join(', ')}) VALUES (${placeholders})
-      ON CONFLICT ${conflict} DO UPDATE SET ${updates}
-    `;
-    await db.query(sql, vals);
+    const keys = Object.keys(data);
+    const placeholders = keys.map(() => '?').join(',');
+    const sql = `INSERT INTO ${this.table} (${keys.join(',')}) VALUES (${placeholders})`;
+    await this.db.run(sql, Object.values(data));
+    return { success: true };
   }
 
   async update(data) {
-    const sets = Object.keys(data).map(c => `${c}=?`).join(', ');
-    const vals = Object.values(data);
-    const sql = `UPDATE ${this.table} SET ${sets}` + (this._where.length ? ` WHERE ${this._buildWhere()}` : '');
-    const params = vals.concat(this._collectParams());
-    const [res] = await db.query(sql, params);
-    await this._logAudit('update', null, data);
-    return res.changes;
+    const sets = Object.keys(data).map(k => `${k} = ?`).join(', ');
+    const sql = `UPDATE ${this.table} SET ${sets} ${this._where}`;
+    const params = [...Object.values(data), ...this._params];
+    await this.db.run(sql, params);
+    return { success: true };
   }
 
   async delete() {
-    const sql = `DELETE FROM ${this.table}` + (this._where.length ? ` WHERE ${this._buildWhere()}` : '');
-    const [res] = await db.query(sql, this._collectParams());
-    await this._logAudit('delete');
-    return res.changes;
+    const sql = `DELETE FROM ${this.table} ${this._where}`;
+    await this.db.run(sql, this._params);
+    return { success: true };
   }
 
-  async paginate(page = 1, perPage = 10) {
-    const total = await this.count();
-    const offset = (page - 1) * perPage;
-    const data = await this.limit(perPage, offset).get();
-    return { total, page, perPage, data };
-  }
-
-  // ========== MIGRATION: ensureTable ==========
-  async ensureTable(schema) {
-    const dbConn = await db.getDB();
-    const cols = Object.entries(schema).map(([name, type]) => `${name} ${type}`).join(', ');
-    const sql = `CREATE TABLE IF NOT EXISTS ${this.table} (${cols})`;
-    await dbConn.run(sql);
-    return true;
-  }
-
-  // ========== PRIVATE ==========
-  _buildWhere() {
-    return this._where.map(w => w.raw || `${w.col} ${w.op} ?`).join(' AND ');
-  }
-
-  _collectParams() {
-    const params = [];
-    for (const w of this._where) {
-      if (w.val !== undefined) params.push(w.val);
-      if (w.vals) params.push(...w.vals);
-    }
-    return params;
-  }
-
-  async _logAudit(action, before = null, after = null, userId = null) {
-    const dbConn = await db.getDB();
-    await dbConn.run(`
-      CREATE TABLE IF NOT EXISTS ${this._auditTable} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        table_name TEXT,
-        action TEXT,
-        before_data TEXT,
-        after_data TEXT,
-        user_id TEXT,
-        created_at TEXT DEFAULT (datetime('now'))
-      )
-    `);
-    const sql = `INSERT INTO ${this._auditTable} (table_name, action, before_data, after_data, user_id)
-                 VALUES (?, ?, ?, ?, ?)`;
-    await db.query(sql, [
-      this.table,
-      action,
-      before ? JSON.stringify(before) : null,
-      after ? JSON.stringify(after) : null,
-      userId
-    ]);
+  static for(db, table) {
+    return new Model(db, table);
   }
 }
 
-module.exports = table => new ModelSQLite(table);
+async function initDB(options = {}) {
+  const dbFile = options.filename || path.join(process.cwd(), 'data', 'app.db');
+  const dir = path.dirname(dbFile);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  const db = await open({
+    filename: dbFile,
+    driver: sqlite3.Database
+  });
+
+  // Auto-create __migrations table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS __migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  console.log(`✅ SQLite connected → ${dbFile}`);
+  return db;
+}
+
+module.exports = {
+  initDB,
+  Model
+};
