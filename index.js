@@ -123,6 +123,8 @@ class Model {
         this._where.push(`${col} = ?`);
         this._params.push(val);
       }
+      console.log('WHERE: ', this._where);
+      console.log('Param: ', this._params);
     } else {
       this._where.push(`${column} = ?`);
       this._params.push(value);
