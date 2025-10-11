@@ -4,6 +4,54 @@ const path = require('path');
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 
+/**
+ * Initialize SQLite database connection.
+ * Will auto-create DB file (and folder) if missing.
+ *
+ * @param {object} options
+ * @param {string} options.filename - Path to SQLite database file
+ * @param {boolean} [options.memory=false] - Use in-memory DB (no file)
+ * @param {boolean} [options.readonly=false] - Open DB in readonly mode
+ * @param {boolean} [options.verbose=false] - Enable verbose logging
+ */
+const projectRoot = process.cwd();
+async function initDB(options = {}) {
+  
+  //default create db if initDB() without options;
+  const {
+    filename = path.join(projectRoot, 'data', 'app.sqlite'),
+    memory = false,
+    readonly = false,
+    verbose = false
+  } = options;
+
+  if (!memory) {
+    const dir = path.dirname(filename);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const mode = memory
+    ? sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
+    : readonly
+    ? sqlite3.OPEN_READONLY
+    : sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE;
+
+  if (verbose) {
+    console.log(`[sqlite-model-builder] Opening ${memory ? 'in-memory DB' : filename}`);
+  }
+
+  const db = await open({
+    filename: memory ? ':memory:' : filename,
+    driver: sqlite3.Database,
+    mode
+  });
+
+  if (verbose) {
+    db.on('trace', (sql) => console.log('SQL TRACE:', sql));
+  }
+
+  return db;
+}
 
 class Model {
   constructor(db, table) {
@@ -76,55 +124,6 @@ class Model {
   static for(db, table) {
     return new Model(db, table);
   }
-}
-
-/**
- * Initialize SQLite database connection.
- * Will auto-create DB file (and folder) if missing.
- *
- * @param {object} options
- * @param {string} options.filename - Path to SQLite database file
- * @param {boolean} [options.memory=false] - Use in-memory DB (no file)
- * @param {boolean} [options.readonly=false] - Open DB in readonly mode
- * @param {boolean} [options.verbose=false] - Enable verbose logging
- */
-const projectRoot = process.cwd();
-async function initDB(options = {}) {
-  
-  //default create db if initDB() without options;
-  const {
-    filename = path.join(projectRoot, 'data', 'app.sqlite'),
-    memory = false,
-    readonly = false,
-    verbose = false
-  } = options;
-
-  if (!memory) {
-    const dir = path.dirname(filename);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  }
-
-  const mode = memory
-    ? sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
-    : readonly
-    ? sqlite3.OPEN_READONLY
-    : sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE;
-
-  if (verbose) {
-    console.log(`[sqlite-model-builder] Opening ${memory ? 'in-memory DB' : filename}`);
-  }
-
-  const db = await open({
-    filename: memory ? ':memory:' : filename,
-    driver: sqlite3.Database,
-    mode
-  });
-
-  if (verbose) {
-    db.on('trace', (sql) => console.log('SQL TRACE:', sql));
-  }
-
-  return db;
 }
 
 module.exports = {
