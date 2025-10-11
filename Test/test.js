@@ -3,10 +3,10 @@ const db = require('./data/conn');
 const { Model, ModelClass } = require('@awenk/sqlite-model-builder');
 
 (async () => {
-  await db(); // Init connection sekali saja
+  const conn = await db(); // Init connection sekali saja
 
   // Buat tabel contoh (kalau belum ada)
-  await db.exec(`
+  await conn.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
