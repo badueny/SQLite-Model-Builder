@@ -24,7 +24,8 @@
   },
   "homepage": "https://github.com/badueny/sqlite-model-builder#readme",
   "peerDependencies": {
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "sqlite"
   },
   "engines": {
     "node": ">=18"
