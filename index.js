@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
+const projectRoot = process.cwd();
 
 /**
  * Initialize SQLite database connection.
@@ -14,7 +15,7 @@ const { open } = require('sqlite');
  * @param {boolean} [options.readonly=false] - Open DB in readonly mode
  * @param {boolean} [options.verbose=false] - Enable verbose logging
  */
-const projectRoot = process.cwd();
+
 async function initDB(options = {}) {
   
   //default create db if initDB() without options;
