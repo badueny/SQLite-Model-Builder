@@ -239,6 +239,34 @@ class Model {
     return row?.avg || 0;
   }
 
+  async exists() {
+    const sql = `SELECT 1 FROM ${this.table} ${this._buildWhere()} LIMIT 1`;
+    const row = await this.db.get(sql, this._params);
+    this.reset();
+    return !!row;
+  }
+
+  async pluck(column) {
+    const sql = `SELECT ${column} FROM ${this.table} ${this._buildWhere()}`;
+    const rows = await this.db.all(sql, this._params);
+    this.reset();
+    return rows.map(r => r[column]);
+  }
+
+  async min(column) {
+    const sql = `SELECT MIN(${column}) AS min FROM ${this.table} ${this._buildWhere()}`;
+    const row = await this.db.get(sql, this._params);
+    this.reset();
+    return row?.min ?? null;
+  }
+
+  async max(column) {
+    const sql = `SELECT MAX(${column}) AS max FROM ${this.table} ${this._buildWhere()}`;
+    const row = await this.db.get(sql, this._params);
+    this.reset();
+    return row?.max ?? null;
+  }
+
   async insert(data) {
     const keys = Object.keys(data);
     const placeholders = keys.map(() => '?').join(', ');
