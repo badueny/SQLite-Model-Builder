@@ -77,26 +77,49 @@ class Model {
   }
 }
 
+/**
+ * Initialize SQLite database connection.
+ * Will auto-create DB file (and folder) if missing.
+ *
+ * @param {object} options
+ * @param {string} options.filename - Path to SQLite database file
+ * @param {boolean} [options.memory=false] - Use in-memory DB (no file)
+ * @param {boolean} [options.readonly=false] - Open DB in readonly mode
+ * @param {boolean} [options.verbose=false] - Enable verbose logging
+ */
 async function initDB(options = {}) {
-  const dbFile = options.filename || path.join(process.cwd(), 'data', 'app.db');
-  const dir = path.dirname(dbFile);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const {
+    filename = './data/app.sqlite',
+    memory = false,
+    readonly = false,
+    verbose = false
+  } = options;
+
+  if (!memory) {
+    const dir = path.dirname(filename);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const mode = memory
+    ? sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
+    : readonly
+    ? sqlite3.OPEN_READONLY
+    : sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE;
+
+  if (verbose) {
+    console.log(`[sqlite-model-builder] Opening ${memory ? 'in-memory DB' : filename}`);
+  }
 
   const db = await open({
-    filename: dbFile,
-    driver: sqlite3.Database
+    filename: memory ? ':memory:' : filename,
+    driver: sqlite3.Database,
+    mode
   });
 
-  // Auto-create __migrations table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS __migrations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT UNIQUE,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+  if (verbose) {
+    db.on('trace', (sql) => console.log('SQL TRACE:', sql));
+  }
 
-  console.log(`✅ SQLite connected → ${dbFile}`);
   return db;
 }
 
