@@ -350,10 +350,10 @@ class Model {
   }
 
   _buildWhere() {
-    if (!this._where.length) return '';
-    return 'WHERE ' + this._where.join(' ');
+      if (!this._where.length) return '';
+      return 'WHERE ' + this._where.join(' AND ');
   }
-
+  
   static for(db, table) {
     return new Model(db, table);
   }
