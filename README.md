@@ -64,61 +64,68 @@ try {
 ```js
 // test.js
 const { initDB, Model } = require('@awenk/sqlite-model-builder');
+
 let db = null;
 
+// 🔹 Helper untuk inisialisasi koneksi SQLite sekali saja
 async function getDB() {
-  //Create New Or read if present db
-  /*
-  //1️⃣ Mode default (baca/tulis file, auto create)
-  const db = await initDB({ filename: './data/myapp.sqlite', verbose: true });
+  if (!db) {
+    // 1️⃣ Mode default (baca/tulis file, auto-create folder)
+    db = await initDB({ filename: './data/app.sqlite', verbose: true });
 
-  //2️⃣ Mode readonly
-  const db = await initDB({ filename: './data/myapp.sqlite', readonly: true });
+    // 2️⃣ Mode readonly
+    // db = await initDB({ filename: './data/app.sqlite', readonly: true });
 
-  //3️⃣ Mode in-memory
-  const db = await initDB({ memory: true, verbose: true });
-  */
-  
-  if (!db) db = await initDB({ filename: './data/app.sqlite' });
+    // 3️⃣ Mode in-memory
+    // db = await initDB({ memory: true, verbose: true });
+  }
   return db;
 }
 
 (async () => {
-   await getDB(); //init connection
-  // Auto-create __migrations table
+  await getDB(); // Init connection sekali saja
+
+  // Buat tabel contoh (kalau belum ada)
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       email TEXT,
+      status TEXT DEFAULT 'active',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
-  // ambil semua user
+  // 🧩 Insert data
+  await Model('users').insert({ name: 'Andi', email: 'a@a.com' });
+
+  // 🧩 Update data
+  await Model('users').where('id', '=', 1).update({ name: 'Update Name' });
+
+  // 🧩 Delete data
+  await Model('users').where('id', '=', 2).delete();
+
+  // 🧩 Ambil semua user
   const users = await Model('users').orderBy('id', 'DESC').get();
-  
-  // filter
+  console.log('Users:', users);
+
+  // 🧩 Filter + Like
   const active = await Model('users')
-    .where('status', 'active')
+    .where('status', '=', 'active')
     .whereLike('name', 'andi')
     .get();
-  
-  // insert
-  await Model('users').insert({ name: 'Andi', email: 'a@a.com' });
-  
-  // update
-  await Model('users').where('id', 1).update({ name: 'Update Name' });
-  
-  // delete
-  await Model('users').where('id', 2).delete();
-  
-  // aggregate
-  const total = await Model('orders').count();
+  console.log('Filtered:', active);
+
+  // 🧩 Aggregate
+  const total = await Model('users').count();
+  console.log('Total users:', total);
+
   const sum = await Model('orders').sum('amount');
-  
-  // pagination
+  console.log('Sum amount:', sum);
+
+  // 🧩 Pagination
   const paged = await Model('users').paginate(2, 10);
+  console.log('Paged:', paged);
 })();
 ````
 ```js
