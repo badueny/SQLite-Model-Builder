@@ -56,7 +56,11 @@ async function initDB(options = {}) {
   });
 
   if (verbose) {
-    db.on('trace', (sql) => console.log('[TRACE]', sql));
+    //db.on('trace', (sql) => console.log('[TRACE]', sql));
+    db.on('trace', (sql) => {
+      const cleanSql = sql.replace(/"(\w+)"/g, '$1');
+      console.log('[TRACE]', cleanSql);
+    });
   }
 
   // Simple transaction helper
