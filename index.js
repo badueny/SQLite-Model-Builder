@@ -106,6 +106,12 @@ class Model {
     return this;
   }
 
+  /*DYNAMIC CONDITIONS*/
+  modify(cb) {
+    cb(this);
+    return this;
+  }
+
   where(column, value) {
     if (typeof column === 'object' && !Array.isArray(column)) {
       // Jika object => multiple where otomatis
