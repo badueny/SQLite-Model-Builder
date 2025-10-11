@@ -4,6 +4,7 @@ const path = require('path');
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
 
+
 class Model {
   constructor(db, table) {
     this.db = db;
@@ -87,9 +88,12 @@ class Model {
  * @param {boolean} [options.readonly=false] - Open DB in readonly mode
  * @param {boolean} [options.verbose=false] - Enable verbose logging
  */
+const projectRoot = process.cwd();
 async function initDB(options = {}) {
+  
+  //default create db if initDB() without options;
   const {
-    filename = './data/app.sqlite',
+    filename = path.join(projectRoot, 'data', 'app.sqlite'),
     memory = false,
     readonly = false,
     verbose = false
