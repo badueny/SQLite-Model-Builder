@@ -66,6 +66,7 @@ try {
 const { initDB, Model } = require('@awenk/sqlite-model-builder');
 
 (async () => {
+  //Create New Or read if present db
   const db = await initDB({ filename: './data/myapp.sqlite' });
 
   // Auto-create __migrations table
