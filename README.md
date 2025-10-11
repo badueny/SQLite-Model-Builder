@@ -86,21 +86,30 @@ const { initDB, Model } = require('@awenk/sqlite-model-builder');
     );
   `);
 
-  //get Table
-  const User = Model.for(db, 'users');
-
-  // Insert
-  await User.insert({ name: 'MyNAME', email: 'mail@mail.test' });
-
-  // Select
-  const allUsers = await User.select(['id', 'name']).get();
-  console.log(allUsers);
-
-  // Update
-  await User.where('id', 1).update({ name: 'MyNAME Updated' });
-
-  // Delete
-  await User.where('id', 2).delete();
+  // ambil semua user
+  const users = await Model.for(db, 'users').orderBy('id', 'DESC').get();
+  
+  // filter
+  const active = await Model.for(db, 'users')
+    .where('status', 'active')
+    .whereLike('name', 'andi')
+    .get();
+  
+  // insert
+  await Model.for(db, 'users').insert({ name: 'Andi', email: 'a@a.com' });
+  
+  // update
+  await Model.for(db, 'users').where('id', 1).update({ name: 'Update Name' });
+  
+  // delete
+  await Model.for(db, 'users').where('id', 2).delete();
+  
+  // aggregate
+  const total = await Model.for(db, 'orders').count();
+  const sum = await Model.for(db, 'orders').sum('amount');
+  
+  // pagination
+  const paged = await Model.for(db, 'users').paginate(2, 10);
 })();
 
 ```
