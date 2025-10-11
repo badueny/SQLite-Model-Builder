@@ -100,10 +100,10 @@ async function getDB() {
   await Model('users').insert({ name: 'Andi', email: 'a@a.com' });
 
   // 🧩 Update data
-  await Model('users').where('id', '=', 1).update({ name: 'Update Name' });
+  await Model('users').where('id',1).update({ name: 'Update Name' });
 
   // 🧩 Delete data
-  await Model('users').where('id', '=', 2).delete();
+  await Model('users').where('id',2).delete();
 
   // 🧩 Ambil semua user
   const users = await Model('users').orderBy('id', 'DESC').get();
@@ -111,7 +111,8 @@ async function getDB() {
 
   // 🧩 Filter + Like
   const active = await Model('users')
-    .where('status', '=', 'active')
+    .where('status','active')
+    .whereOp('old','<', 20)
     .whereLike('name', 'andi')
     .get();
   console.log('Filtered:', active);
