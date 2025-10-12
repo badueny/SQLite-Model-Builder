@@ -27,7 +27,9 @@ async function getDB() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       email TEXT,
+      age INTEGER DEFAULT 18,
       status TEXT DEFAULT 'active',
+      role TEXT DEFAULT 'user',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
