@@ -179,7 +179,7 @@ npm install @awenk/sqlite-model-builder
 ### 🧠 Lisensi
 [MIT](https://github.com/badueny/SQLite-Model-Builder?tab=MIT-1-ov-file) © 2025 [bitdev.id](https://bitdev.id) Author: [Awenk](https://github.com/badueny?tab=repositories)
 
-[![Node.js CI](https://github.com/badueny/SQLite-Model-Builder/actions/workflows/node.js.yml/badge.svg)]
+![Node.js CI](https://github.com/badueny/SQLite-Model-Builder/actions/workflows/node.js.yml/badge.svg)
 [![npm version](https://img.shields.io/npm/v/@awenk/sqlite-model-builder.svg)](https://www.npmjs.com/package/@awenk/sqlite-model-builder)
 [![license](https://img.shields.io/github/license/badueny/sqlite-model-builder.svg?style=flat-square)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square)](https://nodejs.org/)
