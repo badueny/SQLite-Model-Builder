@@ -7,10 +7,10 @@ let db = null;
 async function getDB() {
   if (!db) {
     // 1️⃣ Mode default (baca/tulis file, auto-create folder)
-    db = await initDB({ filename: './app.sqlite', verbose: true });
+    db = await initDB({ filename: './data/app.sqlite', verbose: true });
 
     // 2️⃣ Mode readonly
-    // db = await initDB({ filename: './app.sqlite', readonly: true });
+    // db = await initDB({ filename: './data/app.sqlite', readonly: true });
 
     // 3️⃣ Mode in-memory
     // db = await initDB({ memory: true, verbose: true });
