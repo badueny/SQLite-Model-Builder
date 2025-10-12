@@ -35,6 +35,6 @@
     }
   },
   "scripts": {
-    "test": "node test/request.test.js"
+    "test": "node test/model-builder.test.js"
   }
 }
