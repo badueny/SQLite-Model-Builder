@@ -171,7 +171,7 @@ npm install github:badueny/sqlite-model-builder sqlite sqlite3
 ```
 OR
 ```bash
-npm install @awenk/sqlite-model-builder
+npm install @awenk/sqlite-model-builder sqlite sqlite3
 ```
 
 ---
