@@ -33,5 +33,8 @@
     ".": {
       "require": "./index.js"
     }
-  }
+  },
+  "scripts": {
+    "test": "node test/request.test.js"
+  },
 }
