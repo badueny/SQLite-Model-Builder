@@ -146,16 +146,18 @@ async function getDB() {
   console.log(emails); // ['a@a.com', 'b@b.com', ...]
 
   // 🧩 JOIN
-  const result = await Model('posts')
+  const resultJoin = await Model('posts')
     .select(['posts.id', 'posts.title', 'users.name AS author'])
     .join('users', 'posts.user_id', '=', 'users.id')
     .get();
+  console.log(resultJoin);
 
  // 🧩 LEFT JOIN
-  const result = await Model('posts')
+  const resultLeftJoin = await Model('posts')
     .select(['posts.id', 'posts.title', 'users.name AS author'])
     .leftJoin('users', 'posts.user_id', '=', 'users.id')
     .get();
+ console.log(resultLeftJoin);
 
   // 🧩 Min Max
   const minAge = await Model('users').where('status', 'active').min('age');
@@ -174,10 +176,12 @@ const { initDB, ModelClass } = require('@awenk/sqlite-model-builder');
   // Pakai koneksi A
   const modelA = new ModelClass(dbA, 'users');
   const usersA = await modelA.select('*').get();
+  console.log(usersA);
 
   // Pakai koneksi B
   const modelB = new ModelClass(dbB, 'users');
   const usersB = await modelB.select('*').get();
+  console.log(usersB);
 })();
 
 ```
