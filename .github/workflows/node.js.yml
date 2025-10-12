@@ -26,8 +26,8 @@ jobs:
           cache: 'npm'
 
       - name: Install dependensi
-        run: | npm install
-          # Pastikan dependensi peer ikut terpasang
+        run: |
+          npm install
           npm install sqlite sqlite3 --no-save
 
       - name: Jalankan test
