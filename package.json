@@ -36,5 +36,5 @@
   },
   "scripts": {
     "test": "node test/request.test.js"
-  },
+  }
 }
