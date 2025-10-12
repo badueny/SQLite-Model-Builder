@@ -91,13 +91,22 @@ async function getDB() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       email TEXT,
+      age INTEGER DEFAULT 18,
+      role TEXT DEFAULT 'user',
       status TEXT DEFAULT 'active',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      title TEXT
     );
   `);
 
   // 🧩 Insert data
   await Model('users').insert({ name: 'Andi', email: 'a@a.com' });
+  await Model('posts').insert({ user_id: 1, title: 'TEST POSTS' });
 
   // 🧩 Update data
   await Model('users').where('id',1).update({ name: 'Update Name' });
@@ -111,9 +120,8 @@ async function getDB() {
 
   // 🧩 Filter + Like
   const active = await Model('users')
-    .where('position','cs') //singe condition
-    .where({status: 'active', role: 'admin' })   // multiple condition otomatis
-    .whereOp('old','<', 20)
+    .where('status','active') //singe condition | .where({status: 'active', role: 'admin' })   // multiple condition otomatis    
+    .whereOp('age','<', 20)
     .whereLike('name', 'andi')
     .get();
   console.log('Filtered:', active);
@@ -136,6 +144,18 @@ async function getDB() {
   // 🧩 Select Satu Kolom
   const emails = await Model('users').where('status', 'active').pluck('email');
   console.log(emails); // ['a@a.com', 'b@b.com', ...]
+
+  // 🧩 JOIN
+  const result = await Model('posts')
+    .select(['posts.id', 'posts.title', 'users.name AS author'])
+    .join('users', 'posts.user_id', '=', 'users.id')
+    .get();
+
+ // 🧩 LEFT JOIN
+  const result = await Model('posts')
+    .select(['posts.id', 'posts.title', 'users.name AS author'])
+    .leftJoin('users', 'posts.user_id', '=', 'users.id')
+    .get();
 
   // 🧩 Min Max
   const minAge = await Model('users').where('status', 'active').min('age');
