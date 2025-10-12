@@ -1,5 +1,5 @@
 // test.js
-const { initDB, Model } = require('@awenk/sqlite-model-builder');
+const { initDB, Model } = require('../index');
 
 let db = null;
 
