@@ -308,6 +308,26 @@ class Model {
     return { changes: result.changes };
   }
 
+  async upsertMany(rows = [], conflictCols = ['id'], updateCols = []) {
+    if (!Array.isArray(rows) || rows.length === 0) return { changes: 0 };
+
+    const cols = Object.keys(rows[0]);
+    if (updateCols.length === 0)
+      updateCols = cols.filter(c => !conflictCols.includes(c));
+
+    const placeholders = `(${cols.map(() => '?').join(', ')})`;
+    const sql = `
+      INSERT INTO ${this.table} (${cols.join(', ')})
+      VALUES ${rows.map(() => placeholders).join(', ')}
+      ON CONFLICT(${conflictCols.join(', ')})
+      DO UPDATE SET ${updateCols.map(c => `${c}=excluded.${c}`).join(', ')}
+    `;
+    const vals = rows.flatMap(r => cols.map(c => r[c]));
+    const result = await this.db.run(sql, vals);
+    this.reset();
+    return { changes: result.changes };
+  }
+
   async delete() {
     const sql = `DELETE FROM ${this.table} ${this._buildWhere()}`;
     const result = await this.db.run(sql, this._params);
