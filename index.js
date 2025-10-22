@@ -328,6 +328,17 @@ class Model {
     return { changes: result.changes };
   }
 
+async insertOrIgnore(rows = []) {
+  if (!Array.isArray(rows) || !rows.length) return { changes: 0 };
+  const keys = Object.keys(rows[0]);
+  const placeholders = `(${keys.map(() => '?').join(', ')})`;
+  const sql = `INSERT OR IGNORE INTO ${this.table} (${keys.join(', ')}) VALUES ${rows.map(() => placeholders).join(', ')}`;
+  const params = rows.flatMap((r) => Object.values(r));
+  const result = await this.db.run(sql, params);
+  this.reset();
+  return { changes: result.changes };
+}
+
   async delete() {
     const sql = `DELETE FROM ${this.table} ${this._buildWhere()}`;
     const result = await this.db.run(sql, this._params);
