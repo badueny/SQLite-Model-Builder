@@ -24,6 +24,15 @@
   },
   "homepage": "https://github.com/badueny/sqlite-model-builder#readme",
   "peerDependencies": {
+    "sqlite3": "^5.1.7",
+    "sqlite": "^5.1.1"
+  },
+  "peerDependenciesMeta": {
+    "sqlite3": { "optional": true },
+    "sqlite": { "optional": true }
+  },
+  "devDependencies": {
+    "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7"
   },
   "engines": {
@@ -35,6 +44,6 @@
     }
   },
   "scripts": {
-    "test": "node test/model-builder.test.js"
+    "test": "node --test test/model-builder.test.js"
   }
 }

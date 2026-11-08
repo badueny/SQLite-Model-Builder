@@ -10,6 +10,43 @@ Mendukung query dinamis, chaining, filter, agregasi, dan auto-create database ji
 
 ---
 
+### Driver SQLite
+
+Secara default `initDB()` menggunakan driver lama `sqlite3` melalui paket `sqlite`.
+Untuk mode ini instal kedua peer dependency secara eksplisit:
+
+```bash
+npm install @awenk/sqlite-model-builder sqlite3 sqlite
+```
+
+Sebagai alternatif, Node.js **22.13 atau lebih baru** dapat memakai SQLite bawaan
+tanpa menginstal `sqlite3` maupun `sqlite`:
+
+```bash
+npm install @awenk/sqlite-model-builder
+```
+
+```js
+const { initDB, Model } = require('@awenk/sqlite-model-builder');
+const db = await initDB({ filename: './data/app.sqlite', driver: 'node:sqlite' });
+const users = await Model('users').get();
+await db.close();
+```
+
+`node:sqlite` pada Node.js 22 masih experimental. Driver ini menggunakan API
+sinkron: meskipun metodenya dapat di-`await`, query yang berat dapat memblokir
+event loop. Pilihan driver tidak mengubah format file database SQLite.
+Adapter mendukung `exec`, `get`, `all`, `run`, `close`, serta helper
+`transaction`; fitur khusus objek `sqlite`/`sqlite3` seperti `prepare`, event
+dan callback tidak disediakan. Opsi `verbose` mencatat SQL yang diberikan
+ke adapter, bukan trace statement SQLite yang telah diekspansi.
+
+Jika beralih dari versi sebelumnya, instal kedua peer dependency untuk tetap
+memakai default `sqlite3`, atau pilih `driver: 'node:sqlite'` secara eksplisit.
+Node.js 18 masih didukung dengan driver `sqlite3`.
+
+---
+
 ### 🧰 Fitur Utama
 - ⚙️ Auto-create SQLite DB jika belum ada
 - 🔗 Chained query builder mirip Eloquent

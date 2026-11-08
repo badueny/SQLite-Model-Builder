@@ -1,7 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const sqlite3 = require('sqlite3');
-const { open } = require('sqlite');
 const projectRoot = process.cwd();
 
 /**
@@ -13,6 +11,7 @@ const projectRoot = process.cwd();
  * @param {boolean} [options.memory=false] - Use in-memory DB (no file)
  * @param {boolean} [options.readonly=false] - Open DB in readonly mode
  * @param {boolean} [options.verbose=false] - Enable verbose logging
+ * @param {'sqlite3'|'node:sqlite'} [options.driver='sqlite3'] - SQLite driver
  */
 
 let globalDB = null;
@@ -32,34 +31,36 @@ async function initDB(options = {}) {
     memory = false,
     readonly = false,
     verbose = false,
+    driver = 'sqlite3',
   } = options;
+
+  if (!['sqlite3', 'node:sqlite'].includes(driver)) {
+    throw new Error(`Unsupported SQLite driver: ${driver}`);
+  }
 
   if (!memory) {
     const dir = path.dirname(filename);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   }
 
-  const mode = memory
-    ? sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
-    : readonly
-    ? sqlite3.OPEN_READONLY
-    : sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE;
-
   if (verbose) {
     console.log(`[sqlite-model-builder] Opening ${memory ? 'in-memory DB' : filename}`);
   }
 
-  const db = await open({
-    filename: memory ? ':memory:' : filename,
-    driver: sqlite3.Database,
-    mode,
-  });
-
-  if (verbose) {
-    //db.on('trace', (sql) => console.log('[TRACE]', sql));
-    db.on('trace', (sql) => {
-      const cleanSql = sql.replace(/"(\w+)"/g, '$1');
-      console.log('[TRACE]', cleanSql);
+  let db;
+  if (driver === 'node:sqlite') {
+    db = openNodeSQLite(memory ? ':memory:' : filename, { readonly: !memory && readonly, verbose });
+  } else {
+    const sqlite3 = require('sqlite3');
+    const { open } = require('sqlite');
+    const mode = memory
+      ? sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
+      : readonly
+      ? sqlite3.OPEN_READONLY
+      : sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE;
+    db = await open({ filename: memory ? ':memory:' : filename, driver: sqlite3.Database, mode });
+    if (verbose) db.on('trace', (sql) => {
+      console.log('[TRACE]', sql.replace(/"(\w+)"/g, '$1'));
     });
   }
 
@@ -76,6 +77,51 @@ async function initDB(options = {}) {
   };
   setConnection(db);
   return db;
+}
+
+function openNodeSQLite(filename, { readonly, verbose }) {
+  let DatabaseSync;
+  try {
+    ({ DatabaseSync } = require('node:sqlite'));
+  } catch (error) {
+    if (error.code !== 'ERR_UNKNOWN_BUILTIN_MODULE' && error.code !== 'MODULE_NOT_FOUND') throw error;
+    throw new Error('The node:sqlite driver requires Node.js 22.13 or newer with node:sqlite available', { cause: error });
+  }
+  const native = new DatabaseSync(filename, {
+    readOnly: readonly,
+    enableForeignKeyConstraints: false,
+    enableDoubleQuotedStringLiterals: true,
+  });
+  const log = (sql) => { if (verbose) console.log('[TRACE]', sql); };
+  const params = (args) => args.length === 1 && Array.isArray(args[0]) ? args[0] : args;
+  const row = (result) => {
+    if (!result) return result;
+    return Object.fromEntries(Object.entries(result).map(([key, value]) => [
+      key, value instanceof Uint8Array ? Buffer.from(value) : value,
+    ]));
+  };
+  return {
+    async exec(sql) {
+      log(sql);
+      native.exec(sql);
+    },
+    async get(sql, ...args) {
+      log(sql);
+      return row(native.prepare(sql).get(...params(args)));
+    },
+    async all(sql, ...args) {
+      log(sql);
+      return native.prepare(sql).all(...params(args)).map(row);
+    },
+    async run(sql, ...args) {
+      log(sql);
+      const result = native.prepare(sql).run(...params(args));
+      return { lastID: Number(result.lastInsertRowid), changes: Number(result.changes) };
+    },
+    async close() {
+      native.close();
+    },
+  };
 }
 
 class Model {
